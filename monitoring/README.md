@@ -255,9 +255,10 @@ This directory addresses that requirement as follows:
 | Item | Status |
 |---|---|
 | `prometheus-rules.yaml` | Design evidence — Kubernetes PrometheusRule CRD; **not loaded by the docker-compose Prometheus instance** (CRD format is K8s-only) |
-| Prometheus runtime (docker-compose) | **Deployed** — `docker compose up` → `http://localhost:9090`; scrapes itself; app targets return `up=0` until Phase 2 |
-| Grafana runtime (docker-compose) | **Deployed** — `docker compose up` → `http://localhost:3000`; credentials admin/admin (demo only); dashboard auto-provisioned |
-| App `/metrics` endpoints | **Not yet implemented** — `atlas-portal` and `orion-api` do not expose Prometheus metrics; Phase 2 adds `prom-client` and `prometheus-fastapi-instrumentator` |
-| Alertmanager config | Not deployed — no real webhook URLs or API keys in this repository; design intent only |
+| `prometheus/alert-rules.yml` | **Deployed** — plain Prometheus rules format; loaded by docker-compose Prometheus; 3 alert rules: AtlasPortalDown, OrionApiDown, AirflowHealthDown |
+| Prometheus runtime (docker-compose) | **Deployed** — `docker compose up` → `http://localhost:9090`; all targets UP; alert rules loaded |
+| Grafana runtime (docker-compose) | **Deployed** — `docker compose up` → `http://localhost:3000`; credentials admin/admin (demo only); dashboard auto-provisioned with firing-alert count panel |
+| App `/metrics` endpoints | **Deployed** — `atlas-portal` instrumented with `prom-client`; `orion-api` instrumented with `prometheus-fastapi-instrumentator` |
+| Alertmanager (docker-compose) | **Deployed** — `docker compose up` → `http://localhost:9093`; reads `ALERT_WEBHOOK_URL` from `.env`; forwards alerts to webhook (Webhook.site for local testing) |
 | Fluent Bit / log stack | Not deployed — log collection approach documented here as design intent |
 | Applying K8s rules | `kubectl apply --dry-run=client -f monitoring/prometheus-rules.yaml` validates CRD structure |

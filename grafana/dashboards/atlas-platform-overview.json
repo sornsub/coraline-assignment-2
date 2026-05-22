@@ -2,7 +2,7 @@
   "annotations": {
     "list": []
   },
-  "description": "Atlas Platform service availability — scrape target status only. App targets show orange (not yet instrumented) until /metrics endpoints are added in Phase 2.",
+  "description": "Atlas Platform service availability and active alerts. Prometheus metrics, blackbox probes, and Alertmanager integration.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
@@ -69,8 +69,8 @@
           "mappings": [
             {
               "options": {
-                "0": { "color": "semi-dark-orange", "index": 1, "text": "Not instrumented" },
-                "1": { "color": "green",            "index": 0, "text": "UP"               }
+                "0": { "color": "red",   "index": 1, "text": "DOWN" },
+                "1": { "color": "green", "index": 0, "text": "UP"   }
               },
               "type": "value"
             }
@@ -78,8 +78,8 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "semi-dark-orange", "value": null },
-              { "color": "green",            "value": 1    }
+              { "color": "red",   "value": null },
+              { "color": "green", "value": 1    }
             ]
           }
         },
@@ -118,8 +118,8 @@
           "mappings": [
             {
               "options": {
-                "0": { "color": "semi-dark-orange", "index": 1, "text": "Not instrumented" },
-                "1": { "color": "green",            "index": 0, "text": "UP"               }
+                "0": { "color": "red",   "index": 1, "text": "DOWN" },
+                "1": { "color": "green", "index": 0, "text": "UP"   }
               },
               "type": "value"
             }
@@ -127,8 +127,8 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "semi-dark-orange", "value": null },
-              { "color": "green",            "value": 1    }
+              { "color": "red",   "value": null },
+              { "color": "green", "value": 1    }
             ]
           }
         },
@@ -167,8 +167,8 @@
           "mappings": [
             {
               "options": {
-                "0": { "color": "semi-dark-orange", "index": 1, "text": "Not instrumented" },
-                "1": { "color": "green",            "index": 0, "text": "UP"               }
+                "0": { "color": "red",   "index": 1, "text": "DOWN" },
+                "1": { "color": "green", "index": 0, "text": "UP"   }
               },
               "type": "value"
             }
@@ -176,8 +176,8 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "semi-dark-orange", "value": null },
-              { "color": "green",            "value": 1    }
+              { "color": "red",   "value": null },
+              { "color": "green", "value": 1    }
             ]
           }
         },
@@ -196,13 +196,62 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus-local" },
-          "expr": "up{job=\"airflow\"}",
+          "expr": "probe_success{job=\"airflow-health\"}",
           "instant": true,
           "legendFormat": "airflow",
           "refId": "A"
         }
       ],
-      "title": "airflow",
+      "title": "airflow (probe)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-local"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [
+            {
+              "options": {
+                "0": { "color": "green", "index": 0, "text": "None" }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red",   "value": 1    }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 3, "w": 24, "x": 0, "y": 4 },
+      "id": 7,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus-local" },
+          "expr": "sum(ALERTS{alertstate=\"firing\"}) or vector(0)",
+          "instant": true,
+          "legendFormat": "Firing alerts",
+          "refId": "A"
+        }
+      ],
+      "title": "Firing Alerts",
       "type": "stat"
     },
     {
@@ -245,7 +294,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 4 },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 7 },
       "id": 5,
       "options": {
         "legend": {
@@ -259,16 +308,22 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus-local" },
-          "expr": "up",
+          "expr": "up{job!=\"airflow-health\"}",
           "legendFormat": "{{job}}",
           "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus-local" },
+          "expr": "probe_success{job=\"airflow-health\"}",
+          "legendFormat": "airflow (probe)",
+          "refId": "B"
         }
       ],
-      "title": "Scrape Target Status Over Time  (1 = reachable,  0 = not reachable / not yet instrumented)",
+      "title": "Service Status Over Time  (1 = UP,  0 = DOWN)",
       "type": "timeseries"
     },
     {
-      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 12 },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 15 },
       "id": 6,
       "options": {
         "code": {
@@ -276,7 +331,7 @@
           "showLineNumbers": false,
           "showMiniMap": false
         },
-        "content": "## Atlas Platform — Observability Baseline\n\n**Prometheus** (green = UP): Prometheus is running and scraping itself successfully. The monitoring infrastructure is operational.\n\n**atlas-portal / orion-api / airflow** (orange = Not instrumented): These services do not yet expose a `/metrics` endpoint in Prometheus text format. Prometheus scrape attempts fail, so `up=0` for these targets. This is expected for Phase 1.\n\n**Phase 2 — app instrumentation (next step):**\n- Add `prom-client` to `atlas-portal` → exposes `/metrics` with HTTP request rate, latency, process metrics\n- Add `prometheus-fastapi-instrumentator` to `orion-api` → exposes `/metrics` automatically\n- Once instrumented, panels above turn green and HTTP metrics panels can be added to this dashboard",
+        "content": "## Atlas Platform — Service Availability\n\n**Prometheus** (green = UP): Scraping all targets and evaluating alert rules. Alert rules loaded from `prometheus/alert-rules.yml`.\n\n**atlas-portal** (green = UP): Instrumented with `prom-client`. Exposes `/metrics` with Node.js process metrics.\n\n**orion-api** (green = UP): Instrumented with `prometheus-fastapi-instrumentator`. Exposes `/metrics` with per-route HTTP request duration histograms.\n\n**airflow (probe)** (green = UP): Monitored via `blackbox-exporter` HTTP probe to `http://airflow:8080/health`. `probe_success=1` means HTTP 2xx was received.\n\n**Firing Alerts** (green = None, red = count): Shows the number of alerts currently in FIRING state. Three rules are defined — AtlasPortalDown, OrionApiDown, AirflowHealthDown — each fires after the target is down for 1 minute. Alerts are forwarded to Alertmanager → webhook (configured via `ALERT_WEBHOOK_URL` in `.env`).\n\n**Test an alert:** `docker compose stop portal` → wait 60–90 s → check http://localhost:9090/alerts and http://localhost:9093 → recover with `docker compose start portal`.",
         "mode": "markdown"
       },
       "title": "Dashboard Notes",
@@ -285,12 +340,12 @@
   ],
   "refresh": "30s",
   "schemaVersion": 39,
-  "tags": ["platform", "availability"],
+  "tags": ["platform", "availability", "alerts"],
   "templating": { "list": [] },
   "time": { "from": "now-1h", "to": "now" },
   "timepicker": {},
   "timezone": "browser",
   "title": "Atlas Platform — Service Availability",
   "uid": "atlas-platform-overview",
-  "version": 1
+  "version": 3
 }

@@ -1,0 +1,70 @@
+# Prometheus alert rules for local Docker Compose demo.
+#
+# These rules fire when a monitored service is unreachable.
+# Pending duration: 1 minute (for: 1m) before transitioning from
+# PENDING to FIRING and forwarding to Alertmanager.
+#
+# Note: this file uses plain Prometheus rules format and is mounted
+# directly into the prometheus container.
+# It is separate from monitoring/prometheus-rules.yaml, which is a
+# Kubernetes PrometheusRule CRD (monitoring.coreos.com/v1).
+
+groups:
+  - name: atlas-platform-availability
+    interval: 15s
+    rules:
+
+      - alert: AtlasPortalDown
+        expr: up{job="atlas-portal"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+          service: atlas-portal
+        annotations:
+          summary: "atlas-portal is DOWN"
+          description: >
+            Prometheus cannot scrape atlas-portal /metrics.
+            The service may have crashed or become unresponsive.
+            Job: {{ $labels.job }}  Instance: {{ $labels.instance }}
+          runbook: >
+            Diagnose: docker compose ps portal
+            Logs:     docker compose logs --tail=50 portal
+            Recover:  docker compose start portal
+
+      - alert: OrionApiDown
+        expr: up{job="orion-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+          service: orion-api
+        annotations:
+          summary: "orion-api is DOWN"
+          description: >
+            Prometheus cannot scrape orion-api /metrics.
+            The service may have crashed or become unresponsive.
+            Job: {{ $labels.job }}  Instance: {{ $labels.instance }}
+          runbook: >
+            Diagnose: docker compose ps api
+            Logs:     docker compose logs --tail=50 api
+            Recover:  docker compose start api
+
+      - alert: AirflowHealthDown
+        expr: probe_success{job="airflow-health"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+          service: airflow
+        annotations:
+          summary: "Airflow health probe is DOWN"
+          description: >
+            Blackbox-exporter HTTP probe to http://airflow:8080/health
+            returned non-2xx or timed out. Airflow may be starting,
+            crashed, or the scheduler/metadatabase may be unhealthy.
+            Job: {{ $labels.job }}  Instance: {{ $labels.instance }}
+          runbook: >
+            Diagnose: docker compose ps airflow
+            Logs:     docker compose logs --tail=50 airflow
+            Recover:  docker compose start airflow

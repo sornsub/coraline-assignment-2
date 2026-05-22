@@ -351,7 +351,56 @@ All main services expose health endpoints. Kubernetes `readinessProbe` and `live
 | Airflow DAG failure | DAG run state = failed | Slack |
 | Resource pressure | CPU or memory > 90% sustained | PagerDuty |
 
-Alerts are routed via Alertmanager to Slack (low-severity) and PagerDuty (high-severity). Runtime monitoring setup is outside the assignment scope; the design intent is documented here and in `docs/architecture.md`.
+Alerts are routed via Alertmanager to Slack (low-severity) and PagerDuty (high-severity). The design intent is documented here and in `docs/architecture.md`.
+
+### Alertmanager — local Docker Compose
+
+Alertmanager is running locally via `docker compose up`. Alert rules are defined in `prometheus/alert-rules.yml`. Notifications are forwarded to a webhook URL configured in `.env`.
+
+**Alert rules (fire after 1 minute down):**
+
+| Alert | Expression | Service |
+|---|---|---|
+| `AtlasPortalDown` | `up{job="atlas-portal"} == 0` | atlas-portal |
+| `OrionApiDown` | `up{job="orion-api"} == 0` | orion-api |
+| `AirflowHealthDown` | `probe_success{job="airflow-health"} == 0` | airflow |
+
+**Set up Webhook.site for local testing:**
+
+1. Open [https://webhook.site](https://webhook.site) — a unique URL is auto-generated for you.
+2. Copy the URL shown (e.g., `https://webhook.site/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`).
+3. Add it to your local `.env`:
+   ```bash
+   cp .env.example .env
+   # Edit .env and set:
+   # ALERT_WEBHOOK_URL=https://webhook.site/your-unique-id
+   ```
+4. Start or restart the stack:
+   ```bash
+   docker compose up -d
+   ```
+
+**Test an alert end-to-end:**
+
+```bash
+# Stop atlas-portal to trigger AtlasPortalDown
+docker compose stop portal
+
+# Wait 60–90 seconds for the alert to move from PENDING to FIRING
+# Check Prometheus alert state:
+open http://localhost:9090/alerts
+
+# Check Alertmanager (should show the firing alert):
+open http://localhost:9093
+
+# Check Webhook.site — a POST notification should arrive with the alert payload
+
+# Recover and verify the resolved notification:
+docker compose start portal
+```
+
+**Alertmanager UI:** `http://localhost:9093`
+**Prometheus alerts page:** `http://localhost:9090/alerts`
 
 ---
 
@@ -366,7 +415,7 @@ Alerts are routed via Alertmanager to Slack (low-severity) and PagerDuty (high-s
 | Trivy | Configured with `exit-code: 0` — findings are reported but do not block the build; tighten for production |
 | Notebook auth | Token auth disabled for local review only; production must add auth and network controls |
 | Airflow | Single-pod `standalone` mode for demo; production must use the official Helm chart |
-| Monitoring runtime | Prometheus, Grafana, and Alertmanager are design components only; runtime setup is outside assignment scope |
+| Monitoring runtime | Prometheus, Grafana, and Alertmanager run locally via `docker compose up`; K8s production observability stack is outside assignment scope |
 | Secret backends | External Secrets Operator, Vault, or equivalent must be provisioned by the deploying organisation |
 | `app2.zip` | Used as architecture reference during development only; not included in this repository |
 

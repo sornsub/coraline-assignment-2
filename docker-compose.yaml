@@ -51,8 +51,33 @@ services:
       - "--config.file=/etc/prometheus/prometheus.yml"
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alert-rules.yml:/etc/prometheus/alert-rules.yml:ro
     ports:
       - "9090:9090"
+    depends_on:
+      - blackbox-exporter
+      - alertmanager
+
+  blackbox-exporter:
+    image: prom/blackbox-exporter:v0.25.0
+    volumes:
+      - ./prometheus/blackbox.yml:/etc/blackbox_exporter/config.yml:ro
+    ports:
+      - "9115:9115"
+
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    entrypoint: ["sh", "/entrypoint.sh"]
+    environment:
+      # Set ALERT_WEBHOOK_URL in your local .env to receive notifications.
+      # Use https://webhook.site for a free test receiver.
+      # Do not put your real URL in this file or commit it.
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-https://webhook.site/replace-with-your-webhook-url}
+    volumes:
+      - ./alertmanager/alertmanager.yml.template:/etc/alertmanager/alertmanager.yml.template:ro
+      - ./alertmanager/entrypoint.sh:/entrypoint.sh:ro
+    ports:
+      - "9093:9093"
 
   grafana:
     # Demo credentials: admin / admin — local review only, do not use in production
