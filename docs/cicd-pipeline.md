@@ -23,8 +23,8 @@ Pull requests run only the first job (`test-and-validate`) and stop there. No im
 
 | Event | Branches | Jobs that run |
 |---|---|---|
-| Pull request (opened / updated / synchronized) | `dev`, `staging`, `main` | `test-and-validate` only |
-| Push (branch merge) | `dev`, `staging`, `main` | All three jobs |
+| Pull request (opened / updated / synchronized) | `dev`, `staging`, `main` | `test-and-validate` + `build-scan-push` (build + scan only; no login or image push) |
+| Push (branch merge) | `dev`, `staging`, `main` | All three jobs (build, scan, push, deploy) |
 
 ---
 
@@ -49,19 +49,22 @@ If any step fails, the pipeline stops and the PR or push is blocked.
 
 ## Job 2: build-scan-push
 
-Runs only on branch pushes. Depends on `test-and-validate` passing.
+Runs on all events (pull requests and branch pushes). Depends on `test-and-validate` passing.
 
-| Step | Tool | What it does |
-|---|---|---|
-| Prepare image names | bash | Derives `IMAGE_OWNER` and `IMAGE_TAG` from branch name |
-| Set up Docker Buildx | `docker/setup-buildx-action@v3` | Enables multi-platform build support |
-| Login to GHCR | `docker/login-action@v3` | Authenticates with `GITHUB_TOKEN` — no extra secret needed |
-| Build atlas-portal | `docker/build-push-action@v6` | Builds image from `apps/atlas-portal/` |
-| Build orion-api | `docker/build-push-action@v6` | Builds image from `apps/orion-api/` |
-| Scan atlas-portal | `aquasecurity/trivy-action@v0.35.0` | Scans for CRITICAL and HIGH CVEs |
-| Scan orion-api | `aquasecurity/trivy-action@v0.35.0` | Scans for CRITICAL and HIGH CVEs |
-| Push atlas-portal | `docker/build-push-action@v6` | Pushes to GHCR with environment tag |
-| Push orion-api | `docker/build-push-action@v6` | Pushes to GHCR with environment tag |
+Docker **build** and Trivy **scan** steps run on both PRs and pushes — this provides early CVE feedback before a PR is merged.
+GHCR **login** and image **push** steps are guarded by `if: github.event_name != 'pull_request'` and run only on branch pushes.
+
+| Step | Tool | What it does | Runs on PR? |
+|---|---|---|---|
+| Prepare image names | bash | Derives `IMAGE_OWNER` and `IMAGE_TAG` from branch name | Yes |
+| Set up Docker Buildx | `docker/setup-buildx-action@v3` | Enables multi-platform build support | Yes |
+| Login to GHCR | `docker/login-action@v3` | Authenticates with `GITHUB_TOKEN` — no extra secret needed | **No** |
+| Build atlas-portal | `docker/build-push-action@v6` | Builds image from `apps/atlas-portal/` | Yes |
+| Build orion-api | `docker/build-push-action@v6` | Builds image from `apps/orion-api/` | Yes |
+| Scan atlas-portal | `aquasecurity/trivy-action@v0.35.0` | Scans for CRITICAL and HIGH CVEs | Yes |
+| Scan orion-api | `aquasecurity/trivy-action@v0.35.0` | Scans for CRITICAL and HIGH CVEs | Yes |
+| Push atlas-portal | `docker/build-push-action@v6` | Pushes to GHCR with environment tag | **No** |
+| Push orion-api | `docker/build-push-action@v6` | Pushes to GHCR with environment tag | **No** |
 
 > **Note on Trivy:** The current configuration uses `exit-code: 0` — findings are reported in the workflow log but do not block the build. For production, set `exit-code: 1` to fail the pipeline on critical findings.
 

@@ -7,13 +7,11 @@ data:
   API_URL: http://orion-api:8000
   AIRFLOW_URL: http://airflow:8080
   NOTEBOOK_URL: http://notebook-lab:8888
-  APACHE_WEB_URL: http://apache-web:80
   GRAFANA_URL: https://grafana.example.internal
   SERVICE_LINKS_JSON: |
     [
-      {"name":"API Service","url":"http://orion-api:8000","description":"Source catalog and platform API"},
+      {"name":"API Service","url":"http://orion-api:8000/api/v1/sources","description":"Source catalog and platform API"},
       {"name":"Apache Airflow","url":"http://airflow:8080","description":"Workflow orchestration"},
       {"name":"Notebook Service","url":"http://notebook-lab:8888","description":"Notebook-style analytics workspace"},
-      {"name":"Apache HTTP Server","url":"http://apache-web:80","description":"Static internal service"},
       {"name":"Monitoring/Grafana","url":"https://grafana.example.internal","description":"Dashboards and alerts"}
     ]

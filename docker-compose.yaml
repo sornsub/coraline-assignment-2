@@ -6,13 +6,18 @@ services:
       API_URL: http://localhost:8000
       AIRFLOW_URL: http://localhost:8081
       NOTEBOOK_URL: http://localhost:8888
-      APACHE_WEB_URL: http://localhost:8082
       GRAFANA_URL: http://localhost:3000
+      SERVICE_LINKS_JSON: |
+        [
+          {"name":"API Service","url":"http://localhost:8000/api/v1/sources","description":"Source catalog and platform API"},
+          {"name":"Apache Airflow","url":"http://localhost:8081","description":"Workflow orchestration"},
+          {"name":"Notebook Service","url":"http://localhost:8888","description":"Notebook-style analytics workspace"},
+          {"name":"Monitoring/Grafana","url":"http://localhost:3000","description":"Dashboards and alerts"}
+        ]
     ports:
       - "8080:8080"
     depends_on:
       - api
-      - apache-web
 
   api:
     build: ./apps/orion-api
@@ -33,13 +38,6 @@ services:
       - ./airflow/dags:/opt/airflow/dags:ro
     ports:
       - "8081:8080"
-
-  apache-web:
-    image: httpd:2.4-alpine
-    volumes:
-      - ./apache-web/index.html:/usr/local/apache2/htdocs/index.html:ro
-    ports:
-      - "8082:80"
 
   notebook-lab:
     image: quay.io/jupyter/base-notebook:2025-08-11

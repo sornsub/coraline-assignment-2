@@ -18,7 +18,7 @@ The platform is designed around three observability pillars:
 | Alerting | Alertmanager | Route firing alerts to the right team via Slack or PagerDuty |
 | Logging | Fluent Bit + OpenSearch / Loki | Collect structured logs from all pods; support search and retention |
 
-All five platform services (`atlas-portal`, `orion-api`, `airflow`, `apache-web`, `notebook-lab`) are observable through this design. Each service exposes a health endpoint; the API and portal can additionally expose a `/metrics` endpoint for Prometheus scraping.
+All four platform services (`atlas-portal`, `orion-api`, `airflow`, `notebook-lab`) are observable through this design. Each service exposes a health endpoint; the API and portal can additionally expose a `/metrics` endpoint for Prometheus scraping.
 
 ---
 
@@ -40,7 +40,6 @@ Prometheus uses the **Prometheus Operator** pattern for Kubernetes-native config
 | `atlas-portal` (Node.js) | `prom-client` | HTTP request count, latency, process memory, event loop lag |
 | `orion-api` (FastAPI) | `prometheus-fastapi-instrumentator` | HTTP request count by status, latency histogram, active requests |
 | `airflow` | StatsD exporter sidecar or `airflow-exporter` | DAG run count, task state (success / failed / running), scheduler heartbeat |
-| `apache-web` | Apache `mod_status` with exporter | Request rate, bytes served, worker states |
 | `notebook-lab` | JupyterLab metrics plugin (optional) | Kernel count, CPU/memory per kernel |
 
 Kubernetes platform metrics (pod status, resource consumption) are collected automatically by:

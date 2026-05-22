@@ -29,7 +29,7 @@ The design covers:
 
 ## Architecture Overview
 
-The platform consists of five internal services behind an Ingress controller. External data sources are reached through private network paths. Monitoring and logging are designed as platform-level concerns.
+The platform consists of four internal services behind an Ingress controller. External data sources are reached through private network paths. Monitoring and logging are designed as platform-level concerns.
 
 ```
 Internet boundary
@@ -53,9 +53,8 @@ For the full diagram see **[docs/architecture.md](docs/architecture.md)**.
 | Service | Stack | Port | Purpose | Health endpoint |
 |---|---|---|---|---|
 | `atlas-portal` | Node.js / Express | 8080 | Web portal — service cards, environment display, links to platform tools | `/health` |
-| `orion-api` | Python / FastAPI | 8000 | API service — data source catalog, platform metadata, readiness check | `/health`, `/ready` |
+| `orion-api` | Python / FastAPI | 8000 | API service — data source catalog (`/api/v1/sources`), readiness check | `/health`, `/ready` |
 | `airflow` | Apache Airflow | 8081 | Workflow orchestration — scheduled external data sync DAGs | `/health` |
-| `apache-web` | Apache HTTPD | 8082 | Static HTTP endpoint — internal reference page | `/` |
 | `notebook-lab` | JupyterLab | 8888 | Notebook environment — ad hoc data exploration | — |
 
 ---
@@ -90,12 +89,11 @@ For the full diagram see **[docs/architecture.md](docs/architecture.md)**.
    | Service | Local URL | Notes |
    |---|---|---|
    | Portal | `http://localhost:8080` | |
-   | API | `http://localhost:8000` | |
    | API source catalog | `http://localhost:8000/api/v1/sources` | |
+   | API health | `http://localhost:8000/health` | |
    | Airflow | `http://localhost:8081` | |
-   | Apache web | `http://localhost:8082` | |
    | Notebook | `http://localhost:8888` | |
-   | Prometheus | `http://localhost:9090` | Targets → app scrape targets show down until Phase 2 instrumentation |
+   | Prometheus | `http://localhost:9090` | App scrape targets show down until Phase 2 instrumentation |
    | Grafana | `http://localhost:3000` | Credentials: admin / admin (demo only) — dashboard auto-loads under Atlas Platform |
 
 5. Stop the stack:
@@ -330,7 +328,6 @@ All main services expose health endpoints. Kubernetes `readinessProbe` and `live
 | `orion-api` | `/health` | Liveness |
 | `orion-api` | `/ready` | Readiness |
 | `airflow` | `/health` | Startup + Readiness + Liveness |
-| `apache-web` | `/` | Readiness |
 
 ### Metrics — design intent
 
@@ -384,7 +381,6 @@ Alerts are routed via Alertmanager to Slack (low-severity) and PagerDuty (high-s
 │   ├── atlas-portal/                 # Node.js / Express web portal
 │   └── orion-api/                    # Python / FastAPI API service
 ├── airflow/dags/                     # Sample Airflow DAG
-├── apache-web/                       # Static Apache index page
 ├── docs/
 │   ├── architecture.md               # System architecture diagrams
 │   ├── cicd-pipeline.md              # CI/CD pipeline documentation

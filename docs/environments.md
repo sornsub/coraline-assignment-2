@@ -86,7 +86,6 @@ APP_ENV: base
 API_URL: http://orion-api:8000
 AIRFLOW_URL: http://airflow:8080
 NOTEBOOK_URL: http://notebook-lab:8888
-APACHE_WEB_URL: http://apache-web:80
 GRAFANA_URL: https://grafana.example.internal
 SERVICE_LINKS_JSON: <portal card definitions>
 ```
@@ -97,7 +96,7 @@ SERVICE_LINKS_JSON: <portal card definitions>
 |---|---|---|---|
 | `APP_ENV` | `dev` | `staging` | `prod` |
 | `API_URL` | `http://dev-orion-api:8000` | `http://staging-orion-api:8000` | `http://prod-orion-api:8000` |
-| `SERVICE_LINKS_JSON` | Dev-tier service URLs | Staging-tier service URLs | Prod-tier service URLs |
+| `SERVICE_LINKS_JSON` | Dev-tier service URLs (API → `/api/v1/sources`) | Staging-tier service URLs | Prod-tier service URLs |
 
 Each service reads its environment name and service URLs from the ConfigMap at startup. No environment-specific values are baked into the application image.
 
@@ -134,14 +133,14 @@ envFrom:
 | Replicas — atlas-portal | 1 | 1 | 3 |
 | Replicas — orion-api | 1 | 1 | 3 |
 | Replicas — airflow | 1 | 1 | 1 |
-| CPU request — portal | 50m | 50m | 150m |
-| CPU limit — portal | 250m | 250m | 500m |
-| Memory request — portal | 64Mi | 64Mi | 128Mi |
-| Memory limit — portal | 128Mi | 128Mi | 256Mi |
-| CPU request — API | 50m | 50m | 200m |
-| CPU limit — API | 300m | 300m | 1000m |
-| Memory request — API | 96Mi | 96Mi | 256Mi |
-| Memory limit — API | 256Mi | 256Mi | 512Mi |
+| CPU request — portal | 50m | 100m | 150m |
+| CPU limit — portal | 200m | 300m | 500m |
+| Memory request — portal | 64Mi | 96Mi | 128Mi |
+| Memory limit — portal | 128Mi | 192Mi | 256Mi |
+| CPU request — API | 50m | 100m | 200m |
+| CPU limit — API | 250m | 500m | 1000m |
+| Memory request — API | 96Mi | 128Mi | 256Mi |
+| Memory limit — API | 256Mi | 384Mi | 512Mi |
 | Ingress host | `atlas-dev.example.internal` | `atlas-staging.example.internal` | `atlas.example.internal` |
 
 Resource differences are applied by overlay patch files:
@@ -172,7 +171,6 @@ k8s/
 │   │   ├── service.yaml
 │   │   └── kustomization.yaml
 │   ├── airflow/
-│   ├── apache-web/
 │   └── notebook/
 └── overlays/
     ├── dev/

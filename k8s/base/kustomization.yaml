@@ -8,7 +8,6 @@ resources:
   - portal
   - api
   - airflow
-  - apache-web
   - notebook
   - ingress.yaml
 

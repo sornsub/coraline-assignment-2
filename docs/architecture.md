@@ -2,7 +2,7 @@
 
 ## System Architecture
 
-The platform runs five services inside a Kubernetes cluster. All inbound traffic passes through an Ingress controller. The API service and Airflow connect to external data sources over private network paths. Monitoring and logging components observe all services from within the cluster.
+The platform runs four services inside a Kubernetes cluster. All inbound traffic passes through an Ingress controller. The API service and Airflow connect to external data sources over private network paths. Monitoring and logging components observe all services from within the cluster.
 
 ```mermaid
 flowchart LR
@@ -16,7 +16,6 @@ flowchart LR
       Portal["atlas-portal\nNode.js :8080"]
       API["orion-api\nFastAPI :8000"]
       Airflow["Apache Airflow\n:8081"]
-      Apache["apache-web\n:8082"]
       Notebook["notebook-lab\n:8888"]
     end
 
@@ -43,7 +42,6 @@ flowchart LR
   Portal -->|"API calls"| API
   Portal -. "card link" .-> Airflow
   Portal -. "card link" .-> Notebook
-  Portal -. "card link" .-> Apache
   Portal -. "card link" .-> Graf
 
   API -->|"private endpoint"| CDB
@@ -76,31 +74,44 @@ flowchart LR
 
 ## CI/CD Flow
 
-The pipeline runs on every push and pull request to `dev`, `staging`, and `main`. Pull requests run tests and validation only; images are built and pushed on branch pushes.
+The pipeline runs on every push and pull request to `dev`, `staging`, and `main`.
+Kustomize validation and image builds run on all events. Image push and deployment run on branch pushes only.
 
 ```mermaid
 flowchart TD
-  PR["Pull request or push\ndev / staging / main"]
-  Tests["Run portal and API tests\nnpm test  ·  pytest  ·  npm run lint"]
-  Build["Build Docker images\natlas-portal  ·  orion-api"]
-  Scan["Scan images with Trivy\nCRITICAL + HIGH"]
-  Validate["Validate Kustomize overlays\ndev + staging + prod"]
-  Branch{"Branch?"}
-  Dev["Publish :dev images\nhand off to dev GitOps"]
-  Staging["Publish :staging images\nhand off to staging GitOps"]
-  Prod["Publish :prod images\nmanual approval gate\nhand off to prod GitOps"]
+  Trigger["Pull request or push\ndev / staging / main"]
 
-  PR --> Tests
-  Tests --> Build
-  Build --> Scan
-  Scan --> Validate
-  Validate --> Branch
+  subgraph Job1["Job 1: test-and-validate  (all events)"]
+    Tests["Run portal and API tests\nnpm test  ·  pytest  ·  npm run lint"]
+    Validate["Validate Kustomize overlays\ndev + staging + prod"]
+    Tests --> Validate
+  end
+
+  subgraph Job2["Job 2: build-scan-push  (all events)"]
+    Build["Build Docker images\natlas-portal  ·  orion-api"]
+    Scan["Scan images with Trivy\nCRITICAL + HIGH"]
+    Build --> Scan
+  end
+
+  PRCheck{"Push event?"}
+  Push["Push images to GHCR\n:dev / :staging / :prod"]
+  Branch{"Branch?"}
+  Dev["Hand off to dev GitOps"]
+  Staging["Hand off to staging GitOps"]
+  Prod["Manual approval gate\nhand off to prod GitOps"]
+
+  Trigger --> Job1
+  Job1 --> Job2
+  Job2 --> PRCheck
+  PRCheck -->|"No — pull request\nstops here"| PRDone["PR validation complete"]
+  PRCheck -->|"Yes"| Push
+  Push --> Branch
   Branch -->|"dev"| Dev
   Branch -->|"staging"| Staging
   Branch -->|"main"| Prod
 ```
 
-> Pull requests stop after the Validate step — no images are built or pushed for PRs.
+> Pull requests complete after the Scan step — images are built and scanned for early CVE feedback, but not pushed to the registry and not deployed.
 
 For the full pipeline stage descriptions and branch-mapping table, see [cicd-pipeline.md](cicd-pipeline.md).
 
