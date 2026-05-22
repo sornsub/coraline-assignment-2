@@ -1,1 +1,85 @@
+# ─── Local environment / secrets ───────────────────────────────────────────
 .env
+.env.*
+!.env.example
+
+# ─── AI / editor local state ────────────────────────────────────────────────
+.claude/
+.cursor/
+.continue/
+
+# ─── Node.js ────────────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-store/
+dist/
+build/
+coverage/
+
+# ─── Python ─────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+htmlcov/
+.coverage
+coverage.xml
+
+# ─── Airflow local runtime ───────────────────────────────────────────────────
+airflow/logs/
+airflow/db/
+airflow/*.db
+airflow/airflow-webserver.pid
+
+# ─── Docker / local generated files ─────────────────────────────────────────
+docker-compose.override.yml
+*.log
+logs/
+tmp/
+.temp/
+
+# ─── Terraform local state ───────────────────────────────────────────────────
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# ─── Kubernetes local generated output ───────────────────────────────────────
+kubeconfig*
+*.kubeconfig
+
+# ─── OS files ────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── IDE / editor ────────────────────────────────────────────────────────────
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# ─── Archives / binaries not needed for source review ────────────────────────
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z

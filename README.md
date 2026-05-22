@@ -22,8 +22,42 @@ The design covers:
 | [docs/architecture.md](docs/architecture.md) | System architecture diagrams, CI/CD flow, and release promotion |
 | [docs/cicd-pipeline.md](docs/cicd-pipeline.md) | Full CI/CD pipeline stages, branch mapping, image tagging, GitOps handoff |
 | [docs/environments.md](docs/environments.md) | dev / staging / prod environment strategy and Kustomize overlay breakdown |
+| [docs/testing-guide.md](docs/testing-guide.md) | Step-by-step local test guide, expected outputs, alert test, troubleshooting |
+| [docs/images/README.md](docs/images/README.md) | Screenshot capture guide for submission evidence |
 | [monitoring/README.md](monitoring/README.md) | Observability design: Prometheus, Grafana, Alertmanager, logging approach |
 | [monitoring/prometheus-rules.yaml](monitoring/prometheus-rules.yaml) | Example PrometheusRule CRD with 5 alert definitions (design evidence) |
+
+---
+
+## Quick Start
+
+> Full step-by-step guide with expected outputs, alert test, and troubleshooting: **[docs/testing-guide.md](docs/testing-guide.md)**
+
+```bash
+# 1. Copy environment template
+cp .env.example .env
+# Edit .env — set ALERT_WEBHOOK_URL to your Webhook.site URL (optional for basic test)
+
+# 2. Build and start all 8 services
+docker compose up --build -d
+
+# 3. Verify all containers are running
+docker compose ps
+
+# 4. Open the portal
+open http://localhost:8080        # macOS
+# or: start http://localhost:8080  # Windows
+```
+
+| Service | URL |
+|---|---|
+| Portal | http://localhost:8080 |
+| API health | http://localhost:8000/health |
+| Prometheus | http://localhost:9090/targets |
+| Grafana | http://localhost:3000 (admin / admin) |
+| Alertmanager | http://localhost:9093 |
+
+**Success looks like:** `docker compose ps` shows 8 containers `Up`, Grafana dashboard shows all 4 service panels green.
 
 ---
 
@@ -421,6 +455,87 @@ docker compose start portal
 
 ---
 
+## Screenshots
+
+> Screenshots are not committed to the repository.  
+> Capture them after local verification and save to `docs/images/` before submission.  
+> See **[docs/images/README.md](docs/images/README.md)** for exact capture instructions.
+
+### Atlas Portal
+**[Screenshot needed — save as `docs/images/portal.png`]**  
+*Open http://localhost:8080. Capture the portal page showing all 4 service cards: API Service, Apache Airflow, Notebook Service, Monitoring/Grafana.*
+
+![Atlas Portal](docs/images/portal.png)
+
+### Grafana — All Services UP
+**[Screenshot needed — save as `docs/images/grafana-service-availability.png`]**  
+*Open http://localhost:3000 → Dashboards → Atlas Platform. Capture all 4 stat panels green and Firing Alerts showing "None".*
+
+![Grafana service availability dashboard](docs/images/grafana-service-availability.png)
+
+### Prometheus Targets
+**[Screenshot needed — save as `docs/images/prometheus-targets.png`]**  
+*Open http://localhost:9090/targets. Capture all 4 jobs (prometheus, atlas-portal, orion-api, airflow-health) in State=UP.*
+
+![Prometheus scrape targets all UP](docs/images/prometheus-targets.png)
+
+### Prometheus Alerts — AtlasPortalDown Firing
+**[Screenshot needed — save as `docs/images/prometheus-alerts.png`]**  
+*Run `docker compose stop portal`, wait 70 seconds, then open http://localhost:9090/alerts. Capture AtlasPortalDown in FIRING state.*
+
+![Prometheus alert firing](docs/images/prometheus-alerts.png)
+
+### Alertmanager — Active Alert
+**[Screenshot needed — save as `docs/images/alertmanager-alert.png`]**  
+*Open http://localhost:9093 after the alert fires. Capture AtlasPortalDown as an active alert routed to the webhook receiver.*
+
+![Alertmanager active alert](docs/images/alertmanager-alert.png)
+
+### Webhook.site — Notification Received
+**[Screenshot needed — save as `docs/images/webhook-notification.png`]**  
+*Open your Webhook.site URL after the alert fires. Capture the POST request in the inbox showing the JSON alert payload.*
+
+![Webhook.site notification received](docs/images/webhook-notification.png)
+
+### GitHub Actions — Passing
+**[Screenshot needed — save as `docs/images/github-actions.png`]**  
+*Open the Actions tab on the GitHub repository. Capture the latest workflow run on `main` with all jobs passing.*
+
+![GitHub Actions workflow passing](docs/images/github-actions.png)
+
+---
+
+## Reviewer Checklist
+
+Run through this checklist to confirm the submission is complete.
+
+### Local stack
+- [ ] `docker compose up --build -d` completes without errors
+- [ ] `docker compose ps` shows 8 containers all `Up`
+- [ ] `curl http://localhost:8080/health` → `{"status":"ok","service":"atlas-portal"}`
+- [ ] `curl http://localhost:8000/health` → `{"status":"ok","service":"orion-api"}`
+- [ ] `curl http://localhost:8000/api/v1/sources` → 3 data sources returned
+- [ ] `curl http://localhost:9090/-/ready` → `Prometheus Server is Ready.`
+- [ ] `curl http://localhost:9093/-/ready` → `OK`
+
+### Monitoring
+- [ ] Grafana dashboard loads at http://localhost:3000
+- [ ] All 4 service stat panels show green / UP
+- [ ] Prometheus targets page shows all 4 jobs UP
+- [ ] Alert test: `docker compose stop portal` triggers `AtlasPortalDown` within 70 seconds
+- [ ] Webhook.site receives POST notification (requires `ALERT_WEBHOOK_URL` in `.env`)
+
+### Kubernetes
+- [ ] `kubectl kustomize k8s/overlays/dev` renders without errors
+- [ ] `kubectl kustomize k8s/overlays/staging` renders without errors
+- [ ] `kubectl kustomize k8s/overlays/prod` renders without errors
+
+### CI/CD
+- [ ] GitHub Actions workflow passes on the `main` branch
+- [ ] No `.env` file is committed (`git status` shows `.env` as untracked or ignored)
+
+---
+
 ## Folder Structure
 
 ```text
@@ -433,13 +548,26 @@ docker compose start portal
 ├── docs/
 │   ├── architecture.md               # System architecture diagrams
 │   ├── cicd-pipeline.md              # CI/CD pipeline documentation
-│   └── environments.md               # Environment strategy documentation
+│   ├── environments.md               # Environment strategy documentation
+│   ├── testing-guide.md              # Step-by-step local test guide
+│   └── images/README.md              # Screenshot capture guide
 ├── k8s/
 │   ├── base/                         # Shared Kubernetes resources
 │   └── overlays/dev|staging|prod/    # Environment-specific Kustomize patches
 ├── monitoring/
 │   ├── prometheus-rules.yaml         # Example PrometheusRule CRD (5 alert rules)
 │   └── README.md                     # Observability design documentation
-├── .env.example                      # Placeholder local environment variables
-└── docker-compose.yaml               # Local review stack (all 5 services)
+├── alertmanager/
+│   ├── alertmanager.yml.template     # Alertmanager config template (WEBHOOK_URL_PLACEHOLDER)
+│   └── entrypoint.sh                 # sed substitution + Alertmanager startup script
+├── prometheus/
+│   ├── prometheus.yml                # Prometheus scrape config and alerting config
+│   ├── alert-rules.yml               # Alert rules: AtlasPortalDown, OrionApiDown, AirflowHealthDown
+│   └── blackbox.yml                  # Blackbox exporter HTTP probe module
+├── grafana/
+│   ├── provisioning/                 # Auto-provisioned datasource and dashboard provider
+│   └── dashboards/                   # Atlas Platform — Service Availability dashboard JSON
+├── .env.example                      # Placeholder local environment variables (safe to commit)
+├── .gitignore                        # Ignores .env, node_modules/, .claude/, archives
+└── docker-compose.yaml               # Local review stack (8 services)
 ```
